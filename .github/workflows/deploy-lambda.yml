@@ -38,7 +38,25 @@ jobs:
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
         run: |
-          aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --zip-file fileb://function.zip
+          # AWS Lambda direct upload limit is 50 MB (compressed). If package <= 50MB use --zip-file, otherwise upload to S3 and update from S3.
+          SIZE_BYTES=$(stat -c%s function.zip)
+          echo "Package size: ${SIZE_BYTES} bytes"
+          MAX_BYTES=$((50 * 1024 * 1024))
+          if [ "$SIZE_BYTES" -le "$MAX_BYTES" ]; then
+            echo "Uploading directly to Lambda (size <= 50MB)"
+            aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --zip-file fileb://function.zip
+          else
+            echo "Package >50MB, will upload to S3. Ensure secret LAMBDA_S3_BUCKET is configured."
+            if [ -z "${{ secrets.LAMBDA_S3_BUCKET }}" ] && [ -z "$LAMBDA_S3_BUCKET" ]; then
+              echo "ERROR: Repository secret LAMBDA_S3_BUCKET is not set. Set it to the target S3 bucket name." >&2
+              exit 1
+            fi
+            # Prefer the secret value in env if provided
+            LAMBDA_S3_BUCKET="${LAMBDA_S3_BUCKET:-${{ secrets.LAMBDA_S3_BUCKET }}}"
+            KEY="function-$(date +%s).zip"
+            aws s3 cp function.zip s3://"$LAMBDA_S3_BUCKET"/"$KEY"
+            aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --s3-bucket "$LAMBDA_S3_BUCKET" --s3-key "$KEY"
+          fi
 name: Deploy to AWS Lambda
 
 on:
