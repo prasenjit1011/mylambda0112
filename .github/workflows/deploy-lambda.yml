@@ -21,6 +21,47 @@ jobs:
       - name: Install zip
         run: sudo apt-get update && sudo apt-get install -y zip
 
+      - name: Ensure LAMBDA_FUNCTION_NAME is set
+        env:
+          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          if [ -z "$LAMBDA_FUNCTION_NAME" ]; then
+            echo "ERROR: Repository secret LAMBDA_FUNCTION_NAME is not set. Set it in Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+
+      - name: Zip Lambda package
+        run: |
+          zip -r function.zip . -x ".git/*"
+
+      - name: Update Lambda function code
+        env:
+          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+        run: |
+          aws lambda update-function-code --function-name "$LAMBDA_FUNCTION_NAME" --zip-file fileb://function.zip
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install zip
+        run: sudo apt-get update && sudo apt-get install -y zip
+
       - name: Zip Lambda package
         run: |
           zip -r function.zip . -x .git/**\n
@@ -28,3 +69,12 @@ jobs:
       - name: Update Lambda function code
         run: |
           aws lambda update-function-code --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} --zip-file fileb://function.zip
+        - name: Ensure LAMBDA_FUNCTION_NAME is set
+          env:
+            LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          run: |
+            if [ -z "$LAMBDA_FUNCTION_NAME" ]; then
+              echo "ERROR: Repository secret LAMBDA_FUNCTION_NAME is not set. Set it in Settings → Secrets and variables → Actions." >&2
+              exit 1
+            fi
+
