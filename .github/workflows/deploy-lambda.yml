@@ -26,7 +26,7 @@ jobs:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
         run: |
           if [ -z "$LAMBDA_FUNCTION_NAME" ]; then
-            echo "ERROR: Repository secret LAMBDA_FUNCTION_NAME is not set. Set it in Settings → Secrets and variables → Actions." >&2
+            echo "ERROR: Repository secret LAMBDA_FUNCTION_NAME is not set. Set it in Settings -> Secrets and variables -> Actions." >&2
             exit 1
           fi
 
