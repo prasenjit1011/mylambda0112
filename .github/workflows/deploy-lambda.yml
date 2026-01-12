@@ -39,7 +39,12 @@ jobs:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
           LAMBDA_S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
         run: |
-          SIZE_BYTES=$(stat -c%s function.zip)
+          # get size in a portable way; fallback to wc -c if stat -c fails
+          if stat -c%s function.zip >/dev/null 2>&1; then
+            SIZE_BYTES=$(stat -c%s function.zip)
+          else
+            SIZE_BYTES=$(wc -c < function.zip)
+          fi
           echo "Package size: ${SIZE_BYTES} bytes"
           MAX_BYTES=$((50 * 1024 * 1024))
           if [ "$SIZE_BYTES" -le "$MAX_BYTES" ]; then
