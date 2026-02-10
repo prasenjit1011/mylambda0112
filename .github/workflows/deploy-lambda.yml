@@ -39,7 +39,7 @@ jobs:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
           LAMBDA_S3_BUCKET: ${{ secrets.LAMBDA_S3_BUCKET }}
         run: |
-          # get size in a portable way; fallback to wc -c if stat -c fails
+          # portable size check
           if stat -c%s function.zip >/dev/null 2>&1; then
             SIZE_BYTES=$(stat -c%s function.zip)
           else
